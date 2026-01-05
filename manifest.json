@@ -1,0 +1,53 @@
+{
+    "manifest_version": 3,
+    "name": "RateMyProfessor Context",
+    "version": "1.0.0",
+    "description": "Instant RMP ratings in your side panel when highlighting professor names.",
+    "browser_specific_settings": {
+        "gecko": {
+            "id": "rmp-context@alvin.extension",
+            "data_collection_permissions": {
+                "required": [
+                    "none"
+                ],
+                "optional": []
+            }
+        }
+    },
+    "permissions": [
+        "activeTab",
+        "scripting",
+        "storage"
+    ],
+    "host_permissions": [
+        "*://*.ratemyprofessors.com/*"
+    ],
+    "background": {
+        "page": "src/background/background.html"
+    },
+    "sidebar_action": {
+        "default_panel": "src/sidepanel/sidepanel.html",
+        "default_title": "RMP Context"
+    },
+    "content_scripts": [
+        {
+            "matches": [
+                "<all_urls>"
+            ],
+            "js": [
+                "src/content/contentScript.js"
+            ],
+            "all_frames": true
+        }
+    ],
+    "web_accessible_resources": [
+        {
+            "resources": [
+                "src/data/schools.json"
+            ],
+            "matches": [
+                "<all_urls>"
+            ]
+        }
+    ]
+}

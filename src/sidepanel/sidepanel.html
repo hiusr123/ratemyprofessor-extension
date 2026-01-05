@@ -1,0 +1,85 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>RateMyProfessor Context</title>
+  <link rel="stylesheet" href="sidepanel.css">
+</head>
+
+<body>
+  <div id="app">
+    <div class="top-section">
+      <div class="header">
+        <h1>RMP Context</h1>
+        <div class="status-indicator" id="school-indicator">Detecting School...</div>
+      </div>
+
+      <div class="manual-school-override"
+        style="padding: 0.5rem 1rem; background: rgba(0,0,0,0.2); border-bottom: 1px solid rgba(255,255,255,0.05);">
+        <input type="text" id="school-input" placeholder="Wrong school? Type name..."
+          style="width: 100%; box-sizing: border-box; background: rgba(255,255,255,0.1); border: none; color: white; padding: 4px 8px; border-radius: 4px; font-size: 0.8rem;">
+      </div>
+    </div>
+
+    <div id="content" class="content-area">
+      <!-- State: Empty -->
+      <div id="empty-state" class="state-view active">
+        <div class="icon">🎓</div>
+        <p>Highlight a professor's name on a school website to see ratings.</p>
+      </div>
+
+      <!-- State: Loading -->
+      <div id="loading-state" class="state-view">
+        <div class="spinner"></div>
+        <p>Searching...</p>
+      </div>
+
+      <!-- State: Results -->
+      <div id="results-state" class="state-view">
+        <!-- Template for a single professor result -->
+        <div id="professor-card-template" style="display:none;">
+          <div class="professor-card">
+            <div class="card-header">
+              <h2 class="prof-name">John Doe</h2>
+              <span class="dept-badge">Computer Science</span>
+            </div>
+            <div class="metrics-grid">
+              <div class="metric rating">
+                <span class="value">4.5</span>
+                <span class="label">Rating</span>
+              </div>
+              <div class="metric difficulty">
+                <span class="value">3.2</span>
+                <span class="label">Difficulty</span>
+              </div>
+              <div class="metric would-take">
+                <span class="value">90%</span>
+                <span class="label">Would Take</span>
+              </div>
+            </div>
+            <a href="#" target="_blank" class="rmp-link-btn">View Profile</a>
+          </div>
+        </div>
+        <div id="results-list"></div>
+      </div>
+
+      <!-- State: Not Found / Recommendation -->
+      <div id="not-found-state" class="state-view">
+        <div class="error-msg">
+          <h3>Professor Not Found</h3>
+          <p>We couldn't find an exact match for "<span id="search-term"></span>".</p>
+        </div>
+        <div id="suggestions-area">
+          <h4>Similar in <span id="dept-context">Department</span></h4>
+          <!-- Suggestions list -->
+        </div>
+      </div>
+
+    </div>
+  </div>
+  <script src="sidepanel.js"></script>
+</body>
+
+</html>

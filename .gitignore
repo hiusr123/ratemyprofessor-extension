@@ -1,0 +1,13 @@
+# System Files
+.DS_Store
+Thumbs.db
+*.log
+
+# Sensitive Data
+.env
+.env.local
+
+# Build artifacts (if added later)
+node_modules/
+dist/
+build/

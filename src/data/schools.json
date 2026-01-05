@@ -1,0 +1,17 @@
+{
+    "mappings": [
+        {
+            "domain": "canvas.instructure.com",
+            "legacyId": "U2Nob29sLTE="
+        },
+        {
+            "domain": "blackboard.com",
+            "legacyId": "U2Nob29sLTE="
+        },
+        {
+            "domain": "",
+            "legacyId": "U2Nob29sLTE="
+        }
+    ],
+    "note": "legacyId is often base64 encoded 'School-ID'. Real IDs need to be gathered."
+}
