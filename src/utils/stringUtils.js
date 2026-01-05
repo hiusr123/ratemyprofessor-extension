@@ -160,13 +160,13 @@ export function scoreProfessor(prof, searchName, searchDept) {
         score += (firstScore * 10); // Weak match
     }
 
-    // 3. Department Bonus
+    // 3. Department Bonus (CRITICAL - should heavily influence results)
     if (searchDept) {
         const pDeptNormalized = prof.department.toLowerCase().replace(/[^a-z]/g, '');
         const sDeptNormalized = searchDept.toLowerCase().replace(/[^a-z]/g, '');
 
         if (pDeptNormalized.includes(sDeptNormalized) || sDeptNormalized.includes(pDeptNormalized)) {
-            score += 15;
+            score += 50; // Major boost for department match
         }
     }
 

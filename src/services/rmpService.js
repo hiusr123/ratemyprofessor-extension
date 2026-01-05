@@ -31,6 +31,7 @@ class RmpService {
                   name
                 }
                 avgRating
+                avgDifficulty
                 numRatings
                 wouldTakeAgainPercent
                 legacyId
@@ -130,6 +131,7 @@ class RmpService {
                   name
                 }
                 avgRating
+                avgDifficulty
                 numRatings
                 wouldTakeAgainPercent
                 legacyId

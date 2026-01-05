@@ -88,55 +88,95 @@ async function handleSearchProfessor(request, sendResponse) {
         console.log(`[RMP] Search: "${searchTerm}" @ ${resolvedSchoolName || schoolID} (Dept: ${normalizedDept})`);
 
         let results = [];
+        let candidates = [];
 
-        // --- TIER 1: Exact Match (Full Name) ---
-        results = await rmpService.searchProfessor(searchTerm, schoolID);
+        // Parse name into parts
+        const nameParts = searchTerm.split(' ').filter(p => p.length > 0);
+        const lastName = nameParts[nameParts.length - 1];
+        const firstName = nameParts[0];
 
-        // --- TIER 2 & 3: Fallback (Last Name Only) ---
-        if (results.length === 0 && searchTerm.includes(' ')) {
-            const parts = searchTerm.split(' ');
-            const lastName = parts[parts.length - 1]; // Assume last word is surname
-            const firstName = parts[0];
+        // --- STRATEGY: Search by LAST NAME (most reliable identifier) ---
+        console.log(`[RMP] Searching by Last Name: "${lastName}"`);
+        candidates = await rmpService.searchProfessor(lastName, schoolID);
 
-            console.log(`[RMP] Tier 1 empty. Tier 2/3 fallback: Last Name "${lastName}"`);
+        if (candidates.length === 0) {
+            // Try full name as fallback (in case RMP requires it)
+            console.log(`[RMP] Last name search empty, trying full name: "${searchTerm}"`);
+            candidates = await rmpService.searchProfessor(searchTerm, schoolID);
+        }
 
-            // Search by Last Name (Broad)
-            let candidates = await rmpService.searchProfessor(lastName, schoolID);
+        if (candidates.length > 0) {
+            console.log(`[RMP] Found ${candidates.length} candidates, applying filters...`);
 
-            if (candidates.length > 0) {
-                // Apply Scoring Logic to Pick Best Candidate
-                candidates.forEach(p => {
-                    p.matchScore = scoreProfessor(p, searchTerm, normalizedDept);
+            // Score each candidate
+            candidates.forEach(p => {
+                p.matchScore = scoreProfessor(p, searchTerm, normalizedDept);
+            });
+
+            // Sort by score (highest first)
+            candidates.sort((a, b) => b.matchScore - a.matchScore);
+
+            // --- FILTERING LOGIC ---
+            if (normalizedDept) {
+                // STRICT: If we have department context, REQUIRE department match
+                console.log(`[RMP] Filtering by department: "${normalizedDept}"`);
+
+                // First try: Exact department match
+                let deptMatches = candidates.filter(p => {
+                    const profDept = (p.department || '').toLowerCase().replace(/[^a-z0-9]/g, '');
+                    const targetDept = normalizedDept.toLowerCase().replace(/[^a-z0-9]/g, '');
+                    return profDept.includes(targetDept) || targetDept.includes(profDept);
                 });
 
-                // Sort by Score
-                candidates.sort((a, b) => b.matchScore - a.matchScore);
-
-                // Tier 2 Strict Filter: If we have a Department Context, enforce it (or boost heavily)
-                if (normalizedDept) {
-                    const deptMatches = candidates.filter(p => p.matchScore >= 15); // Score includes dept match bonuses
-                    if (deptMatches.length > 0) {
-                        results = deptMatches;
+                if (deptMatches.length > 0) {
+                    results = deptMatches;
+                    console.log(`[RMP] Found ${results.length} department matches`);
+                } else {
+                    // Fallback: Maybe dept is wrong, but if there's only 1 prof with that last name, use them
+                    if (candidates.length === 1) {
+                        console.log(`[RMP] No dept match but only 1 candidate, using them`);
+                        results = candidates;
                     } else {
-                        // Relax: Maybe department is wrong/generic, fall back to high name match
-                        results = candidates.filter(p => p.matchScore >= 30); // High name match
+                        console.log(`[RMP] Multiple candidates but no dept match - taking top scored`);
+                        // Take top 3 highest scored even without dept match
+                        results = candidates.slice(0, 3);
+                    }
+                }
+            } else {
+                // No department context - use name matching only
+                console.log(`[RMP] No department context, using name match only`);
+
+                // If we have firstName, prefer candidates with matching first name
+                if (nameParts.length > 1) {
+                    const firstNameMatches = candidates.filter(p =>
+                        (p.firstName || '').toLowerCase().startsWith(firstName.toLowerCase())
+                    );
+
+                    if (firstNameMatches.length > 0) {
+                        results = firstNameMatches.slice(0, 3);
+                    } else {
+                        results = candidates.slice(0, 3);
                     }
                 } else {
-                    // Tib 3: No Dept Context, just Name Match
-                    results = candidates.filter(p => p.matchScore >= 30);
+                    // Only last name provided
+                    results = candidates.slice(0, 3);
                 }
             }
         }
 
-        // --- GLOBAL FALLBACK FOR SCOPED SEARCH ---
-        // If we HAD a school, but found NO results, maybe the user wants to check other schools?
-        // "search the name don't matter which system" might imply this too.
+        // --- GLOBAL FALLBACK ---
         if (results.length === 0) {
             console.log('[RMP] Scoped search empty. Trying Global Search as last resort.');
-            const globalFallback = await rmpService.searchTeacherGlobal(searchTerm);
+            const globalFallback = await rmpService.searchTeacherGlobal(lastName);
             if (globalFallback.length > 0) {
-                results = globalFallback;
-                resolvedSchoolName = 'Global Search'; // Update context
+                // Apply same filtering logic
+                globalFallback.forEach(p => {
+                    p.matchScore = scoreProfessor(p, searchTerm, normalizedDept);
+                });
+                globalFallback.sort((a, b) => b.matchScore - a.matchScore);
+
+                results = globalFallback.slice(0, 5);
+                resolvedSchoolName = 'Global Search';
             }
         }
 

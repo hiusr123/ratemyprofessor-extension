@@ -130,44 +130,86 @@ function analyzeContext(node) {
     // Helper: Normalize Dept Strings
     const cleanDept = (s) => s.replace(/Department of/i, '').replace(/Department/i, '').trim();
 
-    // 1. Look for nearest "Department" text
-    // Walk up the tree and look for siblings/headers
+    // 1. Look for course code in the SAME element or immediate parent
     let currentNode = node.nodeType === Node.TEXT_NODE ? node.parentElement : node;
-    let depth = 0;
-    while (currentNode && depth < 5) {
 
-        // A. Check for "Department: X" strings
-        if (currentNode.innerText && currentNode.innerText.toLowerCase().includes('department')) {
-            const match = currentNode.innerText.match(/Department\s+(?:of\s+)?([A-Za-z\s&]+)/i);
-            if (match && match[1].length < 40) {
-                department = cleanDept(match[1]);
-                break; // Found high confidence dept
+    // First pass: Check the immediate context (same row/element)
+    if (currentNode) {
+        const immediateText = currentNode.innerText || currentNode.textContent || '';
+        const courseMatch = immediateText.match(/\b([A-Z]{2,4})\s?[-]?\s?(\d{3,4})\b/);
+        if (courseMatch) {
+            course = courseMatch[0]; // Full code "CS 101"
+            department = courseMatch[1]; // "CS"
+            console.log(`[Context] Found course code: ${course}, dept: ${department}`);
+        }
+    }
+
+    // 2. Walk up the tree to find department context
+    let depth = 0;
+    while (currentNode && depth < 8) { // Increased depth for better context
+
+        if (currentNode.innerText) {
+            const text = currentNode.innerText;
+
+            // A. Check for explicit "Department: X" or "Department of X"
+            if (text.toLowerCase().includes('department')) {
+                const match = text.match(/Department\s+(?:of\s+)?([A-Za-z\s&]+)/i);
+                if (match && match[1].length < 40) {
+                    const deptName = cleanDept(match[1]);
+                    // Avoid false positives like "Department Home"
+                    if (!deptName.match(/^(Home|Page|Portal|Login|Welcome|Site)$/i)) {
+                        department = deptName;
+                        console.log(`[Context] Found department label: ${department}`);
+                        break;
+                    }
+                }
+            }
+
+            // B. If we haven't found a course code yet, look for it in parent containers
+            if (!course) {
+                const courseMatch = text.match(/\b([A-Z]{2,4})\s?[-]?\s?(\d{3,4})\b/);
+                if (courseMatch) {
+                    course = courseMatch[0];
+                    if (!department) department = courseMatch[1];
+                    console.log(`[Context] Found course in parent: ${course}`);
+                }
             }
         }
 
-        // B. Check table rows for Course Codes (e.g. CS 101)
-        if (currentNode.tagName === 'TR' || currentNode.tagName === 'LI') {
-            const text = currentNode.innerText;
-            // Regex for "CS 101" or "CS-101"
-            const courseMatch = text.match(/\b([A-Z]{2,4})\s?[-]?\s?(\d{3,4})\b/);
-            if (courseMatch) {
-                course = courseMatch[0]; // Full code "CS 101"
-                if (!department) department = courseMatch[1]; // "CS"
-            }
+        // C. Check table headers (TH elements) for department info
+        if (currentNode.tagName === 'TABLE') {
+            const headers = currentNode.querySelectorAll('th');
+            headers.forEach(th => {
+                const headerText = th.innerText || '';
+                if (headerText.toLowerCase().includes('department')) {
+                    const match = headerText.match(/Department\s+(?:of\s+)?([A-Za-z\s&]+)/i);
+                    if (match && match[1].length < 40) {
+                        department = cleanDept(match[1]);
+                    }
+                }
+            });
         }
 
         currentNode = currentNode.parentElement;
         depth++;
     }
 
-    // 2. Backup: Global Search for H1 "Department of X"
+    // 3. Backup: Global Search for H1/H2 with "Department of X"
     if (!department) {
-        const h1 = document.querySelector('h1');
-        if (h1 && h1.innerText.includes('Department')) {
-            department = cleanDept(h1.innerText);
+        const headers = document.querySelectorAll('h1, h2, h3');
+        for (const header of headers) {
+            if (header.innerText.includes('Department')) {
+                const match = header.innerText.match(/Department\s+(?:of\s+)?([A-Za-z\s&]+)/i);
+                if (match && match[1].length < 40) {
+                    department = cleanDept(match[1]);
+                    console.log(`[Context] Found department in header: ${department}`);
+                    break;
+                }
+            }
         }
     }
 
+    console.log(`[Context] Final result - Department: ${department}, Course: ${course}`);
     return { department, course };
 }
 
@@ -402,7 +444,7 @@ class PopoverManager {
                     </div>
                     <div class="metric">
                         <span class="metric-label">Difficulty</span>
-                        <span class="metric-value">${p.avgDifficulty} / 5</span>
+                        <span class="metric-value">${p.avgDifficulty >= 0 ? p.avgDifficulty + ' / 5' : 'N/A'}</span>
                     </div>
                 </div>
                 <div class="actions">
