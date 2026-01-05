@@ -25,10 +25,6 @@
     "background": {
         "page": "src/background/background.html"
     },
-    "sidebar_action": {
-        "default_panel": "src/sidepanel/sidepanel.html",
-        "default_title": "RMP Context"
-    },
     "content_scripts": [
         {
             "matches": [
