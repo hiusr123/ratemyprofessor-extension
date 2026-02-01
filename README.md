@@ -1,5 +1,11 @@
 # RateMyProfessor Context Extension
 
+![Vibe Coding](https://img.shields.io/badge/Vibe-Coding-ff69b4)
+![Gemini 3 Flash](https://img.shields.io/badge/Model-Gemini%203%20Flash-8E75B2)
+![Claude Sonnet 4.5](https://img.shields.io/badge/Model-Claude%20Sonnet%204.5-D97757)
+
+> **Built with the power of Gemini 3 Flash & Claude Sonnet 4.5 in Antigravity**
+
 A high-performance Chrome/Firefox extension that integrates RateMyProfessor (RMP) intelligence directly into school course registration websites using a **dynamic floating tooltip**.
 
 ## ✨ Features
